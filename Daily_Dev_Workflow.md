@@ -5,6 +5,10 @@
 ```powershell
 ssh -i C:\Users\<you>\.ssh\id_ed25519 devbox@10.224.20.4
 ```
+Quick access
+```powershell
+ssh vm2-dev
+```
 
 code-server (browser editor): `https://10.224.20.4:8443`
 
@@ -28,8 +32,9 @@ code-server (browser editor): `https://10.224.20.4:8443`
 ## Scratch — no git needed
 
 ```bash
-mkdir -p ~/workspace/scratch/<name>
-docker exec dbt-dlt python3 /workspace/scratch/<name>/<file>.py
+mkdir -p ~/workspace/scratch/<name>  --- tạo folder
+docker exec dbt-dlt python3 /workspace/scratch/<name>/<file>.py  -----lệnh chạy file py, trong dự án này lúc chạy file load_oulad cần thêm --env-file như câu lệnh dưới
+docker exec --env-file ~/.dbt_env_<tên> dbt-dlt python3 /workspace/worktrees/<tên-dev>/dlt_pipelines/load_oulad.py
 ```
 
 Edit via code-server. Can't commit, can't push, can't pull shared code — just a personal sandbox.
@@ -42,7 +47,7 @@ Edit via code-server. Can't commit, can't push, can't pull shared code — just 
 
 **1. Check your git works:**
 ```bash
-cd ~/workspace/data-platform
+cd ~/workspace/vn-data-governance
 git pull
 ```
 If it asks for username/password repeatedly or fails with `403`: create a GitHub Personal Access Token, then:
@@ -57,6 +62,8 @@ Use the PAT as the password when prompted. Re-run `git pull` — should work cle
 ```bash
 ls -la ~/.dbt_env_*
 ```
+<img width="503" height="104" alt="image" src="https://github.com/user-attachments/assets/7c949b9d-e69d-4dcd-b5b3-3951a24b4377" />
+
 If missing, ask the team lead, or self-create:
 ```bash
 ~/infra/scripts/dbt-env.sh create <name>
@@ -64,13 +71,15 @@ If missing, ask the team lead, or self-create:
 
 **3. Create your worktree:**
 ```bash
-mkdir -p ~/workspace/worktrees
-cd ~/workspace/data-platform
-git checkout main && git pull
+mkdir -p ~/workspace/worktrees   --- tạo thư mục-p = parents: Cho phép tạo luôn các thư mục cha nếu chúng chưa tồn tại, nếu thư mục đã tồn tại: Không báo lỗi, Không ghi đè (overwrite) thư mục, Không xóa file bên trong, Không thay đổi nội dung hiện có
+
+cd ~/workspace/vn-data-governance
+git checkout main && git pull    ----checkout: Lệnh chuyển branch hiện tại sang branch main/ git pull: kéo code mới nhất từ GitHub về.
+
 git worktree add ../worktrees/<name> -b feature/your-task origin/main
 sudo chown -R $(id -u):$(id -g) ~/workspace/worktrees/<name>
 mkdir -p ~/workspace/worktrees/<name>/.dlt
-cp ~/workspace/data-platform/.dlt/secrets.toml ~/workspace/worktrees/<name>/.dlt/secrets.toml
+cp ~/workspace/vn-data-governance/.dlt/secrets.toml ~/workspace/worktrees/<name>/.dlt/secrets.toml
 ```
 
 **4. Verify:**
@@ -110,10 +119,10 @@ Open a PR → review → merge. Dagster picks up merged code automatically on it
 | Task | Command |
 |---|---|
 | SSH in | `ssh -i C:\Users\<you>\.ssh\id_ed25519 devbox@10.224.20.4` |
-| Check git auth | `cd ~/workspace/data-platform && git pull` |
-| New worktree | `cd ~/workspace/data-platform && git worktree add ../worktrees/<name> -b feature/x origin/main` |
-| List worktrees | `cd ~/workspace/data-platform && git worktree list` |
-| Remove worktree | `cd ~/workspace/data-platform && git worktree remove ../worktrees/<name>` |
+| Check git auth | `cd ~/workspace/vn-data-governance && git pull` |
+| New worktree | `cd ~/workspace/vn-data-governance && git worktree add ../worktrees/<name> -b feature/x origin/main` |
+| List worktrees | `cd ~/workspace/vn-data-governance && git worktree list` |
+| Remove worktree | `cd ~/workspace/vn-data-governance && git worktree remove ../worktrees/<name>` |
 | Verify your schema | `docker exec --env-file ~/.dbt_env_<name> dbt-dlt env \| grep DBT_USER` |
 | dbt debug/run/test/build | `docker exec --env-file ~/.dbt_env_<name> dbt-dlt dbt <cmd> --target dev --project-dir /workspace/worktrees/<name>/dbt_project` |
 | Run a dlt script | `docker exec dbt-dlt python3 /workspace/worktrees/<name>/dlt_pipelines/<file>.py` |
@@ -128,7 +137,7 @@ Open a PR → review → merge. Dagster picks up merged code automatically on it
 **Why `docker exec` instead of running `python3`/`dbt` directly?**
 Those tools aren't installed on the VM2 host — only inside the `dbt-dlt` container.
 
-**Why not just work in `~/workspace/data-platform`?**
+**Why not just work in `~/workspace/vn-data-governance`?**
 It's shared by the whole team and is what Dagster reads for its nightly build. Checking out a different branch there breaks things for everyone. Worktrees keep each person's work physically isolated.
 
 **Forgot `--env-file`?**
