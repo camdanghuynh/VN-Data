@@ -130,7 +130,7 @@ git add . && git commit -m "feat: ..." && git push origin feature/your-task
 ```
 Open a PR → review → merge. Dagster picks up merged code automatically on its next scheduled run — nothing else to do.
 
-----------------------------------------------------------------
+------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 **the thing i did:**
 DLT: lấy load các file (6files) từ sample data folder về Postgres - bronze_cam
@@ -203,12 +203,27 @@ docker exec \
 ```
 Nếu chạy thành công thì trong database sẽ xuất hiện: dbt_cam_gold.dim_student
 
+------------------------------------------------------------------------------------------------------------------------------------------------------------
 dbt run : Chạy model
 
 dbt test : Chạy test
 
 dbt build: run + test + snapshot + seed
 
+------------------------------------------------------------------------------------------------------------------------------------------------------------
+File dbt_project.yml sẽ run khi nào: dbt_project.yml không phải file được "run" trực tiếp như .sql hay .py, đó là file cấu hình của toàn bộ project dbt. Bất kỳ lệnh dbt 
+nào chạy cũng sẽ đều đọc dbt_project.yml
+
+Nó quyết định:
+
+đọc dữ liệu từ đâu (bronze_schema)
+tạo ở schema nào (silver, gold)
+tạo dạng gì (view, table)
+thư mục nào là staging, thư mục nào là marts
+
+Nó là file cấu hình trung tâm của toàn bộ project dbt.
+
+------------------------------------------------------------------------------------------------------------------------------------------------------------
 **Tổng quan kiến trúc**
 ```
 CSV Files
@@ -232,7 +247,7 @@ OpenMetadata
 Dagster
 
 ```
-
+------------------------------------------------------------------------------------------------------------------------------------------------------------
 ## Cheat sheet
 
 | Task | Command |
@@ -249,7 +264,7 @@ Dagster
 
 **Superset:** `https://10.224.20.5:8088` — **OpenMetadata:** `https://10.224.20.5:8585` — browse only, no SSH needed.
 
----
+------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 ## FAQ
 
