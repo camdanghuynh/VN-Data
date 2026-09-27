@@ -73,11 +73,30 @@ If missing, ask the team lead, or self-create:
 ```bash
 mkdir -p ~/workspace/worktrees   --- tạo thư mục-p = parents: Cho phép tạo luôn các thư mục cha nếu chúng chưa tồn tại, nếu thư mục đã tồn tại: Không báo lỗi, Không ghi đè (overwrite) thư mục, Không xóa file bên trong, Không thay đổi nội dung hiện có
 
+-----------------------------
+
 cd ~/workspace/vn-data-governance
 git checkout main && git pull    ----checkout: Lệnh chuyển branch hiện tại sang branch main/ git pull: kéo code mới nhất từ GitHub về.
 
+------------------------------
+
 git worktree add ../worktrees/<name> -b feature/your-task origin/main
+
+--> detail:
+Bước 1: Tạo branch mới từ origin/dev :
+git branch feature/dim_student origin/dev
+Bước 2: Tạo thư mục worktree
+mkdir -p ../worktrees/cam
+Bước 3: Gắn branch vào worktree
+git worktree add ../worktrees/cam feature/dim_student
+
+----------------------
+
 sudo chown -R $(id -u):$(id -g) ~/workspace/worktrees/<name>
+--> Giao toàn bộ quyền sở hữu thư mục worktrees/cam và các file bên trong cho user hiện tại, để bạn có thể chỉnh sửa, tạo, xóa và chạy code mà không bị lỗi quyền truy cập.
+
+--------------
+
 mkdir -p ~/workspace/worktrees/<name>/.dlt
 cp ~/workspace/vn-data-governance/.dlt/secrets.toml ~/workspace/worktrees/<name>/.dlt/secrets.toml
 ```
@@ -109,10 +128,110 @@ psql -h 10.224.20.3 -U dbt_dev_role -d dwh_dev -c "SELECT * FROM dbt_<name>_gold
 git status   # confirm no .env / secrets.toml
 git add . && git commit -m "feat: ..." && git push origin feature/your-task
 ```
-
 Open a PR → review → merge. Dagster picks up merged code automatically on its next scheduled run — nothing else to do.
 
----
+----------------------------------------------------------------
+
+**the thing i did:**
+DLT: lấy load các file (6files) từ sample data folder về Postgres - bronze_cam
+
+code được viết trong file: load_oulad.py
+
+câu lệnh để chạy: 
+```bash
+docker exec --env-file ~/.dbt_env_cam dbt-dlt python3 /workspace/worktrees/cam/dlt_pipelines/load_oulad.py
+```
+<img width="116" height="103" alt="image" src="https://github.com/user-attachments/assets/81509601-13ac-426b-8185-468655673ca0" />
+
+sau khi run xong, có data ở bronze_cam
+
+<img width="293" height="89" alt="image" src="https://github.com/user-attachments/assets/a46c810c-83b6-481c-ad2f-8f8e84491f48" />
+
+
+DBT: làm sạch dữ liệu
+
+Tạo thư mục staging models:
+```bash
+cd ~/workspace/scratch/cam/dbt_project
+mkdir -p models/staging
+```
+↓
+
+Tạo model staging cho student:
+
+```bash
+touch models/staging/stg_student_info.sql
+```
+↓
+
+Chạy  model :
+```bash
+docker exec \
+  --env-file ~/.dbt_env_cam \
+  dbt-dlt \
+  dbt run \
+  --target dev \
+  --project-dir /workspace/scratch/cam/dbt_project \
+  --select stg_student_info
+```
+Nếu chạy thành công thì trong database sẽ xuất hiện: dbt_cam_silver.stg_student_info
+
+neu cau lenh ko su dung --select stg_student_info: -> dbt sẽ chạy nhiều model hơn,dbt sẽ chạy tất cả model trong project 
+
+↓
+
+Các bước tạo Gold model
+
+Tạo thư mục
+```bash
+cd ~/workspace/scratch/cam/dbt_project
+mkdir -p models/marts
+```
+Tạo model target cho student
+```bash
+touch models/marts/dim_student.sql
+```
+Chạy model:
+```bash
+docker exec \
+  --env-file ~/.dbt_env_cam \
+  dbt-dlt \
+  dbt run \
+  --target dev \
+  --project-dir /workspace/scratch/cam/dbt_project \
+  --select dim_student
+```
+Nếu chạy thành công thì trong database sẽ xuất hiện: dbt_cam_gold.dim_student
+
+dbt run : Chạy model
+
+dbt test : Chạy test
+
+dbt build: run + test + snapshot + seed
+
+**Tổng quan kiến trúc**
+```
+CSV Files
+    ↓
+DLT
+    ↓
+bronze_cam
+    ↓
+DBT Staging (Silver)
+    ↓
+dbt_cam_silver
+    ↓
+DBT Marts (Gold)
+    ↓
+dbt_cam_gold
+    ↓
+Superset
+    ↓
+OpenMetadata
+    ↓
+Dagster
+
+```
 
 ## Cheat sheet
 
